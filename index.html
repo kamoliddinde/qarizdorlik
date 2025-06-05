@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Qarzdorlar Ro'yxati</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen p-6">
+
+  <!-- Asosiy konteyner -->
+  <div class="max-w-xl mx-auto bg-white shadow-lg rounded-xl p-6">
+    <h2 class="text-3xl font-bold text-center mb-6 text-gray-800">Qarzdorlar Ro'yxati</h2>
+
+    <!-- Forma -->
+    <div class="space-y-4">
+      <div class="space-y-2">
+        <input type="text" id="nameInput" placeholder="Ism kiriting" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400" />
+      </div>
+
+      <div class="space-y-2">
+        <input type="number" id="amountInput" placeholder="Qarzdorlik (so'm)" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400" />
+      </div>
+
+      <div class="space-y-2">
+        <input type="number" id="eggInput" placeholder="Tuxum soni (ixtiyoriy)" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-400" />
+      </div>
+
+      <div class="space-y-2">
+        <input type="number" id="eggPriceInput" placeholder="Tuxum narxi (so'm)" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-400" />
+      </div>
+
+      <div class="space-y-2">
+        <input type="text" id="phoneInput" placeholder="Raqam (ixtiyoriy)" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-400" />
+      </div>
+
+      <div class="space-y-2">
+        <select id="eggType" class="w-full p-3 border border-gray-300 rounded-xl">
+          <option value="">Tuxum turi (ixtiyoriy)</option>
+          <option value="katta">Katta</option>
+          <option value="o'rtacha">O'rtacha</option>
+          <option value="kichik">Kichik</option>
+        </select>
+      </div>
+
+      <button onclick="addDebt()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl">Qo'shish</button>
+
+      <!-- Qidirish qismi -->
+      <div class="flex gap-2 mt-6">
+        <input type="text" id="searchInput" placeholder="Qidirish..." class="flex-1 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-400" />
+        <button onclick="searchExact()" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl">Qidir</button>
+      </div>
+    </div>
+
+    <!-- Qarzdorlar ro'yxati -->
+    <div id="message" class="mt-4 text-sm text-red-600"></div>
+    <div id="debtList" class="mt-6 space-y-4"></div>
+  </div>
+
+  <!-- Tasdiqlash Modal -->
+  <div id="confirmationModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center hidden">
+    <div class="bg-white p-6 rounded-xl shadow-xl w-96">
+      <h3 class="text-lg font-semibold">Tasdiqlash</h3>
+      <p id="confirmationMessage" class="mt-2">Siz haqiqatdan ham buni amalga oshirmoqchimisiz?</p>
+      <div class="flex gap-4 mt-4">
+        <button onclick="confirmAction(true)" class="w-1/2 bg-green-500 text-white py-2 rounded-xl">Ha</button>
+        <button onclick="confirmAction(false)" class="w-1/2 bg-red-500 text-white py-2 rounded-xl">Yoq</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let debts = JSON.parse(localStorage.getItem('debts')) || {};
+
+    function saveToLocalStorage() {
+      localStorage.setItem('debts', JSON.stringify(debts));
+    }
+
+    function showMessage(text) {
+      const msg = document.getElementById('message');
+      msg.innerHTML = text;
+      setTimeout(() => msg.textContent = '', 4000);
+    }
+
+    function addDebt() {
+      const name = document.getElementById('nameInput').value.trim();
+      const amount = parseFloat(document.getElementById('amountInput').value);
+      const eggs = parseInt(document.getElementById('eggInput').value) || 0;
+      const eggPrice = parseFloat(document.getElementById('eggPriceInput').value) || 0; // Tuxum narxini olish
+      const phone = document.getElementById('phoneInput').value.trim();
+      const eggType = document.getElementById('eggType').value;
+
+      if (!name || isNaN(amount)) {
+        showMessage("Iltimos, to'g'ri ism va summa kiriting!");
+        return;
+      }
+
+      if (debts[name]) {
+        showMessage("Bu ism allaqachon ro'yxatda bor!");
+        return;
+      }
+
+      // Tuxum narxi bilan sonini ko'paytirib qo'shish
+      const eggTotalPrice = eggs * eggPrice;
+
+      debts[name] = { amount: amount + eggTotalPrice, eggs, phone, eggType };
+      saveToLocalStorage();
+      displayDebts();
+
+      // Formalarni tozalash
+      document.getElementById('nameInput').value = "";
+      document.getElementById('amountInput').value = "";
+      document.getElementById('eggInput').value = "";
+      document.getElementById('eggPriceInput').value = "";
+      document.getElementById('phoneInput').value = "";
+      document.getElementById('eggType').value = "";
+    }
+
+    function displayDebts(filter = "") {
+      const listDiv = document.getElementById('debtList');
+      listDiv.innerHTML = "";
+
+      for (const [name, data] of Object.entries(debts)) {
+        if (name.toLowerCase().includes(filter.toLowerCase())) {
+          const id = name.replace(/\s+/g, '_');
+          listDiv.innerHTML += `
+            <div class="bg-white border border-gray-200 p-4 rounded-xl shadow-lg">
+              <div class="flex justify-between items-center">
+                <div>
+                  <h3 class="font-semibold text-xl text-gray-800">${name}</h3>
+                  <p class="text-gray-600 text-sm">Qarzdorlik: <span class="font-bold text-blue-600">${data.amount} so'm</span></p>
+                  ${data.eggs ? `<p class="text-yellow-600">Tuxumlar narxi: ${data.eggs} ta</p>` : ""}
+                  ${data.phone ? `<p class="text-gray-600 text-sm">📞 ${data.phone}</p>` : ""}
+                  ${data.eggType ? `<p class="text-sm text-gray-500">Tuxum turi: ${data.eggType}</p>` : ""}
+                </div>
+                <div class="flex gap-2">
+                  <button onclick="toggleInput('${id}', '${name}')" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-xl text-sm">Qo'shish</button>
+                  <button onclick="toggleMinus('${id}', '${name}')" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl text-sm">Ayirish</button>
+                  <button onclick="confirmDelete('${name}')" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-xl text-sm">O'chirish</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+      }
+    }
+
+    function toggleInput(id) {
+      document.querySelectorAll('[id^="input-"]').forEach(div => div.classList.add('hidden'));
+      document.querySelectorAll('[id^="minus-"]').forEach(div => div.classList.add('hidden'));
+      document.getElementById(`input-${id}`).classList.toggle('hidden');
+    }
+
+    function toggleMinus(id) {
+      document.querySelectorAll('[id^="input-"]').forEach(div => div.classList.add('hidden'));
+      document.querySelectorAll('[id^="minus-"]').forEach(div => div.classList.add('hidden'));
+      document.getElementById(`minus-${id}`).classList.toggle('hidden');
+    }
+
+    function showConfirmationModal(message, onConfirm) {
+      document.getElementById('confirmationMessage').textContent = message;
+      document.getElementById('confirmationModal').classList.remove('hidden');
+      window.confirmAction = (confirmed) => {
+        if (confirmed) onConfirm();
+        document.getElementById('confirmationModal').classList.add('hidden');
+      };
+    }
+
+    function confirmDelete(name) {
+      showConfirmationModal(`Tasdiqlang: ${name} o'chirilsinmi?`, () => deleteDebt(name));
+    }
+
+    function deleteDebt(name) {
+      delete debts[name];
+      saveToLocalStorage();
+      displayDebts();
+    }
+
+    function searchExact() {
+      const query = document.getElementById('searchInput').value.trim();
+      displayDebts(query);
+    }
+
+    displayDebts();
+  </script>
+
+</body>
+</html>
