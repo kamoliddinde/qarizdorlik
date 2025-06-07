@@ -37,7 +37,7 @@
   </div>
 
   <script>
-    let debts = JSON.parse(localStorage.getItem('debts')) || {};
+     let debts = JSON.parse(localStorage.getItem('debts')) || {};
 
     function saveToLocalStorage() {
       localStorage.setItem('debts', JSON.stringify(debts));
@@ -67,8 +67,9 @@
         return;
       }
 
-      const eggTotalPrice = eggs * eggPrice;
-      debts[name] = { amount: amount + eggTotalPrice, eggs, phone, eggType };
+      // Qarzdorlikka tuxum summasi qo‘shilmaydi!
+      debts[name] = { amount, eggs, eggPrice, phone, eggType, history: [] };
+      debts[name].history.push({ type: "Qo‘shildi", value: amount, date: new Date().toLocaleString() });
       saveToLocalStorage();
       displayDebts();
 
@@ -88,15 +89,20 @@
       for (const [name, data] of Object.entries(debts)) {
         if (name.toLowerCase().includes(filter.toLowerCase())) {
           const id = name.replace(/\s+/g, '_');
+          const eggSum = (data.eggs && data.eggPrice) ? data.eggs * data.eggPrice : 0;
+          const total = (data.amount || 0) + eggSum;
           listDiv.innerHTML += `
             <div class="bg-white border p-4 rounded-xl shadow">
               <div class="flex flex-col gap-2">
                 <div>
                   <h3 class="text-xl font-bold">${name}</h3>
-                  <p>Qarzdorlik: <span class="text-blue-600 font-semibold">${data.amount} so'm</span></p>
+                  <p>Qarzdorlik: <span class="text-blue-600 font-semibold">${data.amount || 0} so'm</span></p>
                   ${data.eggs ? `<p class="text-yellow-600">Tuxum: ${data.eggs} ta</p>` : ""}
-                  ${data.phone ? `<p>📞 ${data.phone}</p>` : ""}
+                  ${data.eggPrice ? `<p>Tuxum narxi: <span class="text-green-600 font-semibold">${data.eggPrice} so'm</span></p>` : ""}
                   ${data.eggType ? `<p>Tuxum turi: ${data.eggType}</p>` : ""}
+                  ${eggSum ? `<p>Jami tuxum summasi: <span class="text-green-700 font-semibold">${eggSum} so'm</span></p>` : ""}
+                  <p class="font-bold mt-2">Umumiy qarz: <span class="text-purple-700">${total} so'm</span></p>
+                  ${data.phone ? `<p>📞 ${data.phone}</p>` : ""}
                 </div>
                 <div class="flex flex-col sm:flex-row gap-2">
                   <input type="number" id="add-${id}" placeholder="Qo‘shiladigan summa" class="flex-1 border rounded-xl p-2" />
@@ -107,6 +113,7 @@
                   <button onclick="subtractFromDebt('${name}', '${id}')" class="bg-red-500 text-white px-4 py-2 rounded-xl">Ayirish</button>
                 </div>
                 <button onclick="deleteDebt('${name}')" class="bg-gray-500 text-white px-4 py-2 rounded-xl w-full sm:w-auto">O‘chirish</button>
+                <button onclick="showHistory('${name}')" class="bg-blue-500 text-white px-4 py-2 rounded-xl w-full sm:w-auto">Ma'lumotlar</button>
               </div>
             </div>
           `;
@@ -118,6 +125,8 @@
       const value = parseFloat(document.getElementById(`add-${id}`).value);
       if (isNaN(value) || value <= 0) return;
       debts[name].amount += value;
+      if (!debts[name].history) debts[name].history = [];
+      debts[name].history.push({ type: "Qo‘shildi", value, date: new Date().toLocaleString() });
       saveToLocalStorage();
       displayDebts();
     }
@@ -127,14 +136,48 @@
       if (isNaN(value) || value <= 0) return;
       debts[name].amount -= value;
       if (debts[name].amount < 0) debts[name].amount = 0;
+      if (!debts[name].history) debts[name].history = [];
+      debts[name].history.push({ type: "Ayrildi", value, date: new Date().toLocaleString() });
       saveToLocalStorage();
       displayDebts();
     }
 
+    // O'chirishni tasdiqlash uchun modal qo'shamiz
+    if (!document.getElementById('confirmDeleteModal')) {
+      const modalDiv = document.createElement('div');
+      modalDiv.id = 'confirmDeleteModal';
+      modalDiv.style.display = 'none';
+      modalDiv.className = 'fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50';
+      modalDiv.innerHTML = `
+        <div class="bg-white p-6 rounded-xl max-w-xs w-full relative text-center">
+          <p class="mb-4 text-lg font-semibold">Haqiqatan ham o‘chirishni xohlaysizmi?</p>
+          <div class="flex justify-center gap-4">
+            <button id="confirmDeleteYes" class="bg-red-600 text-white px-4 py-2 rounded-xl">Ha</button>
+            <button id="confirmDeleteNo" class="bg-gray-400 text-white px-4 py-2 rounded-xl">Yo‘q</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modalDiv);
+    }
+
+    let deleteName = null;
+
     function deleteDebt(name) {
-      delete debts[name];
-      saveToLocalStorage();
-      displayDebts();
+      deleteName = name;
+      document.getElementById('confirmDeleteModal').style.display = 'flex';
+      document.getElementById('confirmDeleteYes').onclick = function() {
+        if (deleteName && debts[deleteName]) {
+          delete debts[deleteName];
+          saveToLocalStorage();
+          displayDebts();
+        }
+        document.getElementById('confirmDeleteModal').style.display = 'none';
+        deleteName = null;
+      };
+      document.getElementById('confirmDeleteNo').onclick = function() {
+        document.getElementById('confirmDeleteModal').style.display = 'none';
+        deleteName = null;
+      };
     }
 
     function searchExact() {
@@ -142,7 +185,44 @@
       displayDebts(q);
     }
 
+    // Modal uchun div qo‘shamiz
+    if (!document.getElementById('historyModal')) {
+      const modalDiv = document.createElement('div');
+      modalDiv.id = 'historyModal';
+      modalDiv.style.display = 'none';
+      modalDiv.className = 'fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50';
+      modalDiv.innerHTML = `
+        <div class="bg-white p-6 rounded-xl max-w-md w-full relative">
+          <button onclick="closeHistory()" class="absolute top-2 right-2 text-xl">&times;</button>
+          <h3 id="historyTitle" class="text-lg font-bold mb-4"></h3>
+          <div id="historyContent"></div>
+        </div>
+      `;
+      document.body.appendChild(modalDiv);
+    }
+
+    function showHistory(name) {
+      const modal = document.getElementById('historyModal');
+      const title = document.getElementById('historyTitle');
+      const content = document.getElementById('historyContent');
+      title.textContent = `${name} - O‘zgarishlar tarixi`;
+      const history = debts[name].history || [];
+      if (history.length === 0) {
+        content.innerHTML = "<p>Hali o‘zgarishlar yo‘q.</p>";
+      } else {
+        content.innerHTML = `<ul class="space-y-2">
+          ${history.map(h => `<li>${h.date}: <span class="${h.type === "Qo‘shildi" ? "text-green-600" : "text-red-600"}">${h.type}</span> - <b>${h.value} so'm</b></li>`).join('')}
+        </ul>`;
+      }
+      modal.style.display = 'flex';
+    }
+
+    function closeHistory() {
+      document.getElementById('historyModal').style.display = 'none';
+    }
+
     displayDebts();
   </script>
 </body>
 </html>
+
