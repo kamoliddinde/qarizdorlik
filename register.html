@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <title>Ro‘yxatdan o‘tish</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+  <div class="bg-white p-8 rounded-xl shadow max-w-xs w-full">
+    <h2 class="text-2xl font-bold mb-4">Ro‘yxatdan o‘tish</h2>
+    <input id="email" type="email" placeholder="Email" class="border p-2 rounded-xl mb-2 w-full" required>
+    <input id="password" type="password" placeholder="Parol" class="border p-2 rounded-xl mb-4 w-full" required>
+    <button onclick="register()" class="bg-green-600 text-white px-4 py-2 rounded-xl w-full">Ro‘yxatdan o‘tish</button>
+    <p id="authMsg" class="mt-2 text-center"></p>
+    <a href="index.html" class="text-blue-600 block mt-4 text-center">Kirish sahifasiga qaytish</a>
+  </div>
+  <script>
+    // Firebase konfiguratsiyasi
+    const firebaseConfig = {
+      apiKey: "AIzaSyAgb0G3chiVfdzRXLaIqPV5R2Hx5Un3S0g",
+      authDomain: "e-qarizdorlik.firebaseapp.com",
+      projectId: "e-qarizdorlik",
+      storageBucket: "e-qarizdorlik.appspot.com",
+      messagingSenderId: "975301245533",
+      appId: "1:975301245533:web:436f9a6c3afc50fe756bb4",
+      measurementId: "G-GY758MJ2W9"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    function register() {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const msg = document.getElementById('authMsg');
+      msg.textContent = '';
+      msg.className = "mt-2 text-center";
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(() => {
+          msg.textContent = "Muvaffaqiyatli ro‘yxatdan o‘tdingiz!";
+          msg.className += " text-green-600 font-bold";
+          // 2 soniyadan so‘ng kirish sahifasiga yo‘naltirish (ixtiyoriy)
+          setTimeout(() => {
+            window.location.href = "index.html";
+          }, 2000);
+        })
+        .catch(e => {
+          msg.textContent = e.message;
+          msg.className += " text-red-600";
+        });
+    }
+  </script>
+</body>
+</html>

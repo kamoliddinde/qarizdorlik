@@ -9,33 +9,47 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
 </head>
 <body class="bg-gray-100">
-  <div id="authSection" class="flex flex-col items-center justify-center min-h-screen">
-    <div class="bg-white p-8 rounded-xl shadow max-w-xs w-full">
+  <div id="authSection" class="flex flex-col items-center justify-center min-h-screen px-2">
+    <div class="bg-white p-4 sm:p-8 rounded-xl shadow max-w-xs w-full">
       <h2 class="text-2xl font-bold mb-4" id="authTitle">Kirish</h2>
-      <input id="email" type="email" placeholder="Email" class="border p-2 rounded-xl w-full mb-2">
-      <input id="password" type="password" placeholder="Parol" class="border p-2 rounded-xl w-full mb-4">
-      <button onclick="login()" class="bg-blue-600 text-white px-4 py-2 rounded-xl w-full mb-2">Kirish</button>
-      <button onclick="register()" class="bg-green-600 text-white px-4 py-2 rounded-xl w-full">Ro‘yxatdan o‘tish</button>
-      <p id="authMsg" class="text-red-600 mt-2"></p>
+      <input id="email" type="email" placeholder="Email" class="border p-2 rounded-xl w-full mb-2 text-lg" />
+      <input id="password" type="password" placeholder="Parol" class="border p-2 rounded-xl w-full mb-4 text-lg" />
+      <button onclick="login()" class="bg-blue-600 text-white px-6 py-3 rounded-xl w-full mb-2 text-lg font-bold">Kirish</button>
+      <button onclick="window.location.href='register.html'" class="bg-green-600 text-white px-6 py-3 rounded-xl w-full text-lg font-bold">Ro‘yxatdan o‘tish</button>
+      <p id="authMsg" class="text-red-600 mt-2 text-lg"></p>
     </div>
   </div>
   <div id="mainSection" style="display:none;">
-    <div class="container mx-auto p-4">
-      <div class="flex justify-between items-center mb-4">
-        <h1 class="text-2xl font-bold">Qarzdorlar</h1>
-        <button onclick="logout()" class="bg-gray-600 text-white px-4 py-2 rounded-xl">Chiqish</button>
+    <div class="mx-auto p-2 w-full max-w-full">
+      <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2">
+        <h1 class="text-3xl font-bold">Qarzdorlar</h1>
+        <button onclick="logout()" class="bg-gray-600 text-white px-6 py-3 rounded-xl w-full sm:w-auto text-lg font-bold">Chiqish</button>
       </div>
+      <!-- Qidiruv inputi -->
+      <input id="searchInput" type="text" placeholder="Qarzdor qidirish..." class="border p-3 rounded-xl mb-4 w-full text-lg" oninput="displayDebts()"/>
       <!-- Qarzdor qo‘shish formasi va ro‘yxat -->
       <div class="bg-white p-4 rounded-xl shadow mb-4">
-        <input id="nameInput" type="text" placeholder="Ism" class="border p-2 rounded-xl mb-2 w-full">
-        <input id="amountInput" type="number" placeholder="Pul qarzi" class="border p-2 rounded-xl mb-2 w-full">
-        <input id="eggInput" type="number" placeholder="Tuxum soni" class="border p-2 rounded-xl mb-2 w-full">
-        <input id="eggPriceInput" type="number" placeholder="Tuxum narxi" class="border p-2 rounded-xl mb-2 w-full">
-        <input id="phoneInput" type="text" placeholder="Telefon" class="border p-2 rounded-xl mb-2 w-full">
-        <input id="eggType" type="text" placeholder="Tuxum turi" class="border p-2 rounded-xl mb-2 w-full">
-        <button onclick="addDebt()" class="bg-blue-600 text-white px-4 py-2 rounded-xl w-full">Qo‘shish</button>
+        <input id="nameInput" type="text" placeholder="Ism" class="border p-3 rounded-xl mb-2 w-full text-lg" />
+        <input id="amountInput" type="number" placeholder="Pul qarzi" class="border p-3 rounded-xl mb-2 w-full text-lg" />
+        <input id="eggInput" type="number" placeholder="Tuxum soni" class="border p-3 rounded-xl mb-2 w-full text-lg" />
+        <input id="eggPriceInput" type="number" placeholder="Tuxum narxi" class="border p-3 rounded-xl mb-2 w-full text-lg" />
+        <input id="phoneInput" type="text" placeholder="Telefon" class="border p-3 rounded-xl mb-2 w-full text-lg" />
+        <input id="eggType" type="text" placeholder="Tuxum turi" class="border p-3 rounded-xl mb-2 w-full text-lg" />
+        <button onclick="addDebt()" class="bg-blue-600 text-white px-6 py-3 rounded-xl w-full text-lg font-bold">Qo‘shish</button>
       </div>
+      <!-- Qarzdor qo‘shildi xabari -->
+      <div id="addMsg" class="text-green-600 font-bold mb-2 text-lg" style="display:none;"></div>
       <div id="debtList" class="grid gap-4"></div>
+    </div>
+  </div>
+  <!-- O'chirish uchun modal oyna -->
+  <div id="deleteModal" style="display:none;" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+    <div class="bg-white p-8 rounded-xl shadow-xl w-11/12 max-w-xs text-center">
+      <p class="mb-4 text-xl font-semibold">Haqiqatan ham o‘chirmoqchimisiz?</p>
+      <div class="flex gap-4 justify-center">
+        <button onclick="confirmDelete()" class="bg-red-600 text-white px-6 py-3 rounded-xl text-lg font-bold">Ha, o‘chir</button>
+        <button onclick="cancelDelete()" class="bg-gray-400 text-white px-6 py-3 rounded-xl text-lg font-bold">Bekor</button>
+      </div>
     </div>
   </div>
   <script>
@@ -96,17 +110,7 @@
       }
     });
 
-    function loadDebts() {
-      db.collection('debts').doc(userId).get().then(doc => {
-        debts = doc.exists ? doc.data().debts : {};
-        displayDebts();
-      });
-    }
-
-    function saveDebts() {
-      db.collection('debts').doc(userId).set({ debts });
-    }
-
+    // Qarzdor qo‘shish
     function addDebt() {
       const name = document.getElementById('nameInput').value.trim();
       const amount = parseFloat(document.getElementById('amountInput').value) || 0;
@@ -114,27 +118,86 @@
       const eggPrice = parseFloat(document.getElementById('eggPriceInput').value) || 0;
       const phone = document.getElementById('phoneInput').value.trim();
       const eggType = document.getElementById('eggType').value;
-      if (!name) return;
-      debts[name] = { amount, eggs, eggPrice, phone, eggType, history: [] };
-      saveDebts();
-      displayDebts();
-      document.getElementById('nameInput').value = "";
-      document.getElementById('amountInput').value = "";
-      document.getElementById('eggInput').value = "";
-      document.getElementById('eggPriceInput').value = "";
-      document.getElementById('phoneInput').value = "";
-      document.getElementById('eggType').value = "";
+      if (!userId) {
+        alert("Avval tizimga kiring!");
+        return;
+      }
+      if (!name) {
+        alert("Ism kiritilishi shart!");
+        return;
+      }
+      db.collection('debts').add({
+        uid: userId,
+        name,
+        amount,
+        eggs,
+        eggPrice,
+        phone,
+        eggType,
+        history: []
+      }).then(() => {
+        // Formani tozalash
+        document.getElementById('nameInput').value = "";
+        document.getElementById('amountInput').value = "";
+        document.getElementById('eggInput').value = "";
+        document.getElementById('eggPriceInput').value = "";
+        document.getElementById('phoneInput').value = "";
+        document.getElementById('eggType').value = "";
+        // Xabar ko‘rsatish
+        const addMsg = document.getElementById('addMsg');
+        addMsg.innerText = "Qarzdor qo‘shildi!";
+        addMsg.style.display = "block";
+        setTimeout(() => { addMsg.style.display = "none"; }, 2000);
+        loadDebts();
+      }).catch(e => {
+        alert("Xatolik: " + e.message);
+      });
+    }
+
+    // Qarzdorlarni yuklash
+    function loadDebts() {
+      db.collection('debts').where('uid', '==', userId).get().then(snapshot => {
+        debts = {};
+        snapshot.forEach(doc => {
+          debts[doc.id] = doc.data();
+        });
+        displayDebts();
+      });
+    }
+
+    // O'chirish uchun modal oynani ko'rsatish
+    function showDeleteConfirm(id) {
+      const modal = document.getElementById('deleteModal');
+      modal.style.display = 'flex';
+      modal.dataset.id = id;
+    }
+
+    // O'chirishni tasdiqlash
+    function confirmDelete() {
+      const modal = document.getElementById('deleteModal');
+      const id = modal.dataset.id;
+      db.collection('debts').doc(id).delete().then(() => {
+        modal.style.display = 'none';
+        loadDebts();
+      });
+    }
+
+    // O'chirishni bekor qilish
+    function cancelDelete() {
+      document.getElementById('deleteModal').style.display = 'none';
     }
 
     function displayDebts() {
       const listDiv = document.getElementById('debtList');
+      const search = (document.getElementById('searchInput')?.value || "").toLowerCase();
       listDiv.innerHTML = "";
-      for (const [name, data] of Object.entries(debts)) {
+      for (const [id, data] of Object.entries(debts)) {
+        if (search && !data.name.toLowerCase().includes(search)) continue;
         const eggSum = (data.eggs && data.eggPrice) ? data.eggs * data.eggPrice : 0;
         const total = (data.amount || 0) + eggSum;
         listDiv.innerHTML += `
-          <div class="bg-white border p-4 rounded-xl shadow">
-            <h3 class="text-xl font-bold">${name}</h3>
+          <div class="bg-white border p-6 rounded-xl shadow relative text-lg">
+            <h3 class="text-2xl font-bold">${data.name}</h3>
             <p>Qarzdorlik: <span class="text-blue-600 font-semibold">${data.amount || 0} so'm</span></p>
             ${data.eggs ? `<p class="text-yellow-600">Tuxum: ${data.eggs} ta</p>` : ""}
             ${data.eggPrice ? `<p>Tuxum narxi: <span class="text-green-600 font-semibold">${data.eggPrice} so'm</span></p>` : ""}
@@ -142,6 +205,7 @@
             ${eggSum ? `<p>Jami tuxum summasi: <span class="text-green-700 font-semibold">${eggSum} so'm</span></p>` : ""}
             <p class="font-bold mt-2">Umumiy qarz: <span class="text-purple-700">${total} so'm</span></p>
             ${data.phone ? `<p>📞 ${data.phone}</p>` : ""}
+            <button onclick="showDeleteConfirm('${id}')" class="absolute top-2 right-2 bg-red-600 text-white px-4 py-2 rounded-xl text-lg font-bold">O‘chirish</button>
           </div>
         `;
       }
